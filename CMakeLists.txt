@@ -15,10 +15,25 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(autoware_sensing_msgs REQUIRED)
+
+
+include(cmake/macros.cmake)
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+find_package(GeographicLib REQUIRED)
+
+find_path(GeographicLib_INCLUDE_DIR GeographicLib/Config.h
+        PATH_SUFFIXES GeographicLib)
+set(GeographicLib_INCLUDE_DIRS ${GeographicLib_INCLUDE_DIR})
+
+find_library(GeographicLib_LIBRARIES
+        NAMES Geographic)
+
+add_definitions(${GeographicLib_DEFINITIONS})
 
 
 add_executable(${PROJECT_NAME}  src/local_coordinate_converter.cpp)
-ament_target_dependencies(${PROJECT_NAME} rclcpp std_msgs sensor_msgs)
+ament_target_dependencies(${PROJECT_NAME} rclcpp std_msgs sensor_msgs autoware_sensing_msgs geometry_msgs)
 install(TARGETS
         ${PROJECT_NAME}
         DESTINATION lib/${PROJECT_NAME}
@@ -27,6 +42,12 @@ install(TARGETS
 
 include_directories(include/)
 
+target_link_libraries(${PROJECT_NAME} ${GeographicLib_LIBRARIES})
+
+target_include_directories(${PROJECT_NAME}
+        SYSTEM PUBLIC
+        ${GeographicLib_INCLUDE_DIRS}
+        )
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
