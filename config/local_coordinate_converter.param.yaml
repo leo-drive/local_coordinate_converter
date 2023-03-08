@@ -1,0 +1,16 @@
+/**:
+  ros__parameters:
+
+    # number of input topics
+    number_of_input_topics: 3
+
+    topic_names: ["/applanix/lvx_client/gnss/fix", "input_topic2", "input_topic3"]
+
+    # origin latitude
+    origin_latitude: 0.0
+
+    # origin longitude
+    origin_longitude: 0.0
+
+    # origin altitude
+    origin_altitude: 0.0

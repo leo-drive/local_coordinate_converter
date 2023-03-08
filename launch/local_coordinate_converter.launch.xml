@@ -1,0 +1,10 @@
+<launch>
+
+    <arg name="param_file" default="$(find-pkg-share local_coordinate_converter)/config/local_coordinate_converter.param.yaml"/>
+
+
+    <node pkg="local_coordinate_converter" exec="local_coordinate_converter" name="local_coordinate_converter" output="screen">
+        <param from="$(var param_file)"/>
+    </node>
+
+</launch>
