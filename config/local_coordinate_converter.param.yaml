@@ -4,7 +4,8 @@
     # number of input topics
     number_of_input_topics: 3
 
-    topic_names: ["/applanix/lvx_client/gnss/fix", "/sbg/ros/nav_sat_fix", "/sbg/ros/ekf_nav_sat_fix"]
+    navsatfix_topic_names: ["/applanix/lvx_client/gnss/fix", "/sbg/ros/nav_sat_fix", "/sbg/ros/ekf_nav_sat_fix"]
+    autoware_orientation_topic_names: ["/applanix/lvx_client/autoware_orientation", "/sbg/autoware_orientation", "/sbg/autoware_orientation"]
 
     # origin latitude
     origin_latitude: 41.11678470009106

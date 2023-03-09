@@ -17,23 +17,24 @@ public:
 
 
     void NavSatFix2PoseWithCovarianceStamped(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg, int index);
+    void ReadAutowareOrientation(const autoware_sensing_msgs::msg::GnssInsOrientationStamped::ConstSharedPtr msg, int index);
 
     std::vector<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr> sub_navsatfix_vec;
     std::vector<rclcpp::Subscription<autoware_sensing_msgs::msg::GnssInsOrientationStamped>::SharedPtr> sub_autoware_orientation_vec;
+    rclcpp::Subscription<autoware_sensing_msgs::msg::GnssInsOrientationStamped>::SharedPtr sub_autoware_orientation;
     std::vector<rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr> pub_vec;
 
-    rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr sub_sbg;
-    rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pub_sbg;
-
     struct LocalOrigin {
-        double latitude;
-        double longitude;
-        double altitude;
-        double x;
-        double y;
+        double latitude = 0.0;
+        double longitude = 0.0;
+        double altitude = 0.0;
+        double x = 0.0;
+        double y = 0.0;
     };
     LocalOrigin local_origin;
     void LatLon2UTM(double lat, double lon, double &x, double &y);
+
+    std::vector<autoware_sensing_msgs::msg::GnssInsOrientationStamped> orientation_vec = std::vector<autoware_sensing_msgs::msg::GnssInsOrientationStamped>(10);
 
 };
 
