@@ -20,6 +20,7 @@ LocalCoordinateConverter::LocalCoordinateConverter()
     sub_autoware_orientation_vec.reserve(number_of_input_topics);
     orientation_vec.reserve(number_of_input_topics);
     pub_vec.reserve(number_of_input_topics);
+    pub_pose_vec.reserve(number_of_input_topics);
 
     std::vector<std::string> autoware_orientation_topic_names_{};
     autoware_orientation_topic_names_ = (declare_parameter<std::vector<std::string>>("autoware_orientation_topic_names"));
@@ -41,7 +42,8 @@ LocalCoordinateConverter::LocalCoordinateConverter()
 
         sub_autoware_orientation_vec.push_back(this->create_subscription<autoware_sensing_msgs::msg::GnssInsOrientationStamped>(autoware_orientation_topic_names_[index], rclcpp::SensorDataQoS(),fautowareorientation));
 
-        pub_vec.push_back(this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(topic_name + "_local_pose", 10));
+        pub_vec.push_back(this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(topic_name + "_local_pose_with_covariance_stamped", 10));
+        pub_pose_vec.push_back(this->create_publisher<geometry_msgs::msg::PoseStamped>(topic_name + "_local_pose_stamped", 10));
 
     }
 
@@ -71,6 +73,11 @@ void LocalCoordinateConverter::NavSatFix2PoseWithCovarianceStamped(const sensor_
     pose_with_cov_msg.pose.covariance[35] = std::pow(orientation_vec[index].orientation.rmse_rotation_z,2);
     
     pub_vec[index]->publish(pose_with_cov_msg);
+
+    geometry_msgs::msg::PoseStamped pose_msg;
+    pose_msg.header = msg->header;
+    pose_msg.pose = pose_with_cov_msg.pose.pose;
+    pub_pose_vec[index]->publish(pose_msg);
 
 }
 

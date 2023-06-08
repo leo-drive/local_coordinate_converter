@@ -4,14 +4,14 @@
     # number of input topics
     number_of_input_topics: 3
 
-    navsatfix_topic_names: ["/applanix/lvx_client/gnss/fix", "/sbg/ros/nav_sat_fix", "/sbg/ros/ekf_nav_sat_fix"]
-    autoware_orientation_topic_names: ["/applanix/lvx_client/autoware_orientation", "/sbg/autoware_orientation", "/sbg/autoware_orientation"]
+    navsatfix_topic_names: ["/clap/ros/gps_nav_sat_fix", "/sbg/ros/nav_sat_fix", "/sbg/ros/ekf_nav_sat_fix"]
+    autoware_orientation_topic_names: ["/clap/autoware_orientation", "/sbg/autoware_orientation", "/sbg/autoware_orientation"]
 
     # origin latitude
-    origin_latitude: 41.11678470009106
+    origin_latitude: 41.021515
 
     # origin longitude
-    origin_longitude: 29.016272522002062
+    origin_longitude: 28.886920
 
     # origin altitude
-    origin_altitude: 114.27148911158406
+    origin_altitude: 70.0
