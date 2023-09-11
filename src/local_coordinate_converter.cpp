@@ -3,6 +3,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <autoware_sensing_msgs/msg/gnss_ins_orientation_stamped.hpp>
+#include <std_msgs/msg/float64.hpp>
 #include <memory>
 
 LocalCoordinateConverter::LocalCoordinateConverter()
@@ -17,13 +18,13 @@ LocalCoordinateConverter::LocalCoordinateConverter()
     const auto number_of_input_topics = declare_parameter("number_of_input_topics", 3);
 
     sub_navsatfix_vec.reserve(number_of_input_topics);
-    sub_autoware_orientation_vec.reserve(number_of_input_topics);
-    orientation_vec.reserve(number_of_input_topics);
+//    sub_autoware_orientation_vec.reserve(number_of_input_topics);
+//    orientation_vec.reserve(number_of_input_topics);
     pub_vec.reserve(number_of_input_topics);
     pub_pose_vec.reserve(number_of_input_topics);
 
-    std::vector<std::string> autoware_orientation_topic_names_{};
-    autoware_orientation_topic_names_ = (declare_parameter<std::vector<std::string>>("autoware_orientation_topic_names"));
+//    std::vector<std::string> autoware_orientation_topic_names_{};
+//    autoware_orientation_topic_names_ = (declare_parameter<std::vector<std::string>>("autoware_orientation_topic_names"));
 
     std::vector<std::string> navsatfix_topic_names_{};
     navsatfix_topic_names_ = (declare_parameter<std::vector<std::string>>("navsatfix_topic_names"));
@@ -37,21 +38,62 @@ LocalCoordinateConverter::LocalCoordinateConverter()
         sub_navsatfix_vec.push_back(this->create_subscription<sensor_msgs::msg::NavSatFix>(topic_name, rclcpp::SensorDataQoS(), fnavsatfix));
 
 
-        std::function<void(const autoware_sensing_msgs::msg::GnssInsOrientationStamped::ConstSharedPtr msg)>  fautowareorientation
-                = std::bind(&LocalCoordinateConverter::ReadAutowareOrientation,this, std::placeholders::_1, index);
-
-        sub_autoware_orientation_vec.push_back(this->create_subscription<autoware_sensing_msgs::msg::GnssInsOrientationStamped>(autoware_orientation_topic_names_[index], rclcpp::SensorDataQoS(),fautowareorientation));
+//        std::function<void(const autoware_sensing_msgs::msg::GnssInsOrientationStamped::ConstSharedPtr msg)>  fautowareorientation
+//                = std::bind(&LocalCoordinateConverter::ReadAutowareOrientation,this, std::placeholders::_1, index);
+//
+//        sub_autoware_orientation_vec.push_back(this->create_subscription<autoware_sensing_msgs::msg::GnssInsOrientationStamped>(autoware_orientation_topic_names_[index], rclcpp::SensorDataQoS(),fautowareorientation));
 
         pub_vec.push_back(this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(topic_name + "_local_pose_with_covariance_stamped", 10));
         pub_pose_vec.push_back(this->create_publisher<geometry_msgs::msg::PoseStamped>(topic_name + "_local_pose_stamped", 10));
 
     }
+    pub_pos_difference = this->create_publisher<std_msgs::msg::Float64>("position_difference", 10);
+    pub_pos_difference_x = this->create_publisher<std_msgs::msg::Float64>("position_difference_x", 10);
+    pub_pos_difference_y = this->create_publisher<std_msgs::msg::Float64>("position_difference_y", 10);
+    pub_pos_difference_z = this->create_publisher<std_msgs::msg::Float64>("position_difference_z", 10);
 
+    sub_ekf_posewithcovariance = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+            "/localization/pose_twist_fusion_filter/biased_pose_with_covariance", rclcpp::SensorDataQoS(), std::bind(&LocalCoordinateConverter::ReadEKF,this, std::placeholders::_1));
+    pub_ekf_pose = this->create_publisher<geometry_msgs::msg::PoseStamped>("rr_ekf_pose_stamped", 10);
 }
 void LocalCoordinateConverter::LatLon2UTM(double lat, double lon, double &x, double &y) {
     int zone;
     bool northp;
     GeographicLib::UTMUPS::Forward(lat, lon, zone, northp, x, y);
+}
+void LocalCoordinateConverter::ReadEKF(const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg) {
+
+    sensor_msgs::msg::NavSatFix navsatfix_msg;
+    geometry_msgs::msg::PoseStamped pose_msg;
+    pose_msg.header = msg->header;
+    pose_msg.header.frame_id = "eagleye_base_link";
+    pose_msg.pose = msg->pose.pose;
+
+    constexpr int GZD_ID_size = 5;
+    const LocalCoordinateConverter::MGRSPrecision precision = MGRSPrecision::_100MICRO_METER;
+    std::string mgrs_code;
+
+    double mgrs_code_double_x =  msg->pose.pose.position.x / std::pow(
+            10, static_cast<int>(LocalCoordinateConverter::MGRSPrecision::_1_METER) -
+                static_cast<int>(precision));
+    double mgrs_code_double_y =  msg->pose.pose.position.y / std::pow(
+            10, static_cast<int>(LocalCoordinateConverter::MGRSPrecision::_1_METER) -
+                static_cast<int>(precision));
+
+    mgrs_code = "35TPF" + std::to_string(mgrs_code_double_x).substr(0,static_cast<int>(precision))
+                + std::to_string(mgrs_code_double_y).substr(0,static_cast<int>(precision));
+    std::cout<<"******<<"<<mgrs_code<<">>******"<<std::endl;
+
+    int zone, prec;
+    bool northp;
+    double x, y;
+    GeographicLib::MGRS::Reverse(mgrs_code, zone, northp, x, y, prec);
+
+    pose_msg.pose.position.x = x - local_origin.x;
+    pose_msg.pose.position.y = y - local_origin.y;
+
+    pub_ekf_pose->publish(pose_msg);
+
 }
 void LocalCoordinateConverter::NavSatFix2PoseWithCovarianceStamped(const sensor_msgs::msg::NavSatFix::ConstSharedPtr msg, int index) {
     geometry_msgs::msg::PoseWithCovarianceStamped pose_with_cov_msg;
@@ -67,25 +109,61 @@ void LocalCoordinateConverter::NavSatFix2PoseWithCovarianceStamped(const sensor_
     pose_with_cov_msg.pose.covariance[14] = msg->position_covariance[8];
 
 
-    pose_with_cov_msg.pose.pose.orientation = orientation_vec[index].orientation.orientation;
-    pose_with_cov_msg.pose.covariance[21] = std::pow(orientation_vec[index].orientation.rmse_rotation_x,2);
-    pose_with_cov_msg.pose.covariance[28] = std::pow(orientation_vec[index].orientation.rmse_rotation_y,2);
-    pose_with_cov_msg.pose.covariance[35] = std::pow(orientation_vec[index].orientation.rmse_rotation_z,2);
-    
+//    pose_with_cov_msg.pose.pose.orientation = orientation_vec[index].orientation.orientation;
+//    pose_with_cov_msg.pose.covariance[21] = std::pow(orientation_vec[index].orientation.rmse_rotation_x,2);
+//    pose_with_cov_msg.pose.covariance[28] = std::pow(orientation_vec[index].orientation.rmse_rotation_y,2);
+//    pose_with_cov_msg.pose.covariance[35] = std::pow(orientation_vec[index].orientation.rmse_rotation_z,2);
+
     pub_vec[index]->publish(pose_with_cov_msg);
 
     geometry_msgs::msg::PoseStamped pose_msg;
     pose_msg.header = msg->header;
+    pose_msg.header.frame_id = "eagleye_base_link";
     pose_msg.pose = pose_with_cov_msg.pose.pose;
     pub_pose_vec[index]->publish(pose_msg);
 
+
+
+    if (index == 0){
+        last_pose_x_0 = pose_with_cov_msg.pose.pose.position.x;
+        last_pose_y_0 = pose_with_cov_msg.pose.pose.position.y;
+        last_pose_z_0 = pose_with_cov_msg.pose.pose.position.z;
+
+    }
+    if(index == 1){
+        last_pose_x_1 = pose_with_cov_msg.pose.pose.position.x;
+        last_pose_y_1 = pose_with_cov_msg.pose.pose.position.y;
+        last_pose_z_1 = pose_with_cov_msg.pose.pose.position.z;
+    }
+
+    positionDifference_x = last_pose_x_0 - last_pose_x_1;
+    positionDifference_y = last_pose_y_0 - last_pose_y_1;
+    positionDifference_z = last_pose_z_0 - last_pose_z_1;
+
+    std_msgs::msg::Float64 position_difference_x_msg;
+    position_difference_x_msg.data = positionDifference_x;
+    pub_pos_difference_x->publish(position_difference_x_msg);
+    std_msgs::msg::Float64 position_difference_y_msg;
+    position_difference_y_msg.data = positionDifference_y;
+    pub_pos_difference_y->publish(position_difference_y_msg);
+    std_msgs::msg::Float64 position_difference_z_msg;
+    position_difference_z_msg.data = positionDifference_z;
+    pub_pos_difference_z->publish(position_difference_z_msg);
+
+    positionDifference = sqrt(std::pow(positionDifference_x,2) + std::pow(positionDifference_y,2));
+//    RCLCPP_WARN(this->get_logger(), "position difference is %f", positionDifference);
+//
+    std_msgs::msg::Float64 position_difference_msg;
+    position_difference_msg.data = positionDifference;
+    pub_pos_difference->publish(position_difference_msg);
+
 }
 
-void LocalCoordinateConverter::ReadAutowareOrientation(const autoware_sensing_msgs::msg::GnssInsOrientationStamped::ConstSharedPtr msg, int index) {
-
-    orientation_vec[index].orientation = msg->orientation;
-
-}
+//void LocalCoordinateConverter::ReadAutowareOrientation(const autoware_sensing_msgs::msg::GnssInsOrientationStamped::ConstSharedPtr msg, int index) {
+//
+//    orientation_vec[index].orientation = msg->orientation;
+//
+//}
 int main(int argc, char *argv[]) {
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<LocalCoordinateConverter>());

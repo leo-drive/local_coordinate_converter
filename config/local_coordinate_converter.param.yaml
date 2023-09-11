@@ -4,14 +4,22 @@
     # number of input topics
     number_of_input_topics: 3
 
-    navsatfix_topic_names: ["/clap/ros/gps_nav_sat_fix", "/sbg/ros/nav_sat_fix", "/sbg/ros/ekf_nav_sat_fix"]
-    autoware_orientation_topic_names: ["/clap/autoware_orientation", "/sbg/autoware_orientation", "/sbg/autoware_orientation"]
+    navsatfix_topic_names: ["/sensing/gnss/raw/nav_sat_fix","/eagleye/fix", /sensing/gnss/clap/ros/gps_nav_sat_fix]
+    autoware_orientation_topic_names: ["/sensing/gnss/clap/autoware_orientation","/sensing/gnss/clap/autoware_orientation", "/sensing/gnss/clap/autoware_orientation"]
 
+#    # origin latitude
+#    origin_latitude: 35.23415115497438
+#
+#    # origin longitude
+#    origin_longitude: 137.0000881044936
+#
+#    # origin altitude
+#    origin_altitude: 74.7868271098357
     # origin latitude
-    origin_latitude: 41.021515
+    origin_latitude: 41.021790172837726
 
     # origin longitude
-    origin_longitude: 28.886920
+    origin_longitude: 28.886907173354018
 
     # origin altitude
-    origin_altitude: 70.0
+    origin_altitude: 73.79093627614004
