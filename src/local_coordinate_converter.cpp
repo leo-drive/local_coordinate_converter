@@ -47,10 +47,6 @@ LocalCoordinateConverter::LocalCoordinateConverter()
         pub_pose_vec.push_back(this->create_publisher<geometry_msgs::msg::PoseStamped>(topic_name + "_local_pose_stamped", 10));
 
     }
-    pub_pos_difference = this->create_publisher<std_msgs::msg::Float64>("position_difference", 10);
-    pub_pos_difference_x = this->create_publisher<std_msgs::msg::Float64>("position_difference_x", 10);
-    pub_pos_difference_y = this->create_publisher<std_msgs::msg::Float64>("position_difference_y", 10);
-    pub_pos_difference_z = this->create_publisher<std_msgs::msg::Float64>("position_difference_z", 10);
 
     sub_ekf_posewithcovariance = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
             "/localization/pose_twist_fusion_filter/biased_pose_with_covariance", rclcpp::SensorDataQoS(), std::bind(&LocalCoordinateConverter::ReadEKF,this, std::placeholders::_1));
@@ -123,39 +119,6 @@ void LocalCoordinateConverter::NavSatFix2PoseWithCovarianceStamped(const sensor_
     pub_pose_vec[index]->publish(pose_msg);
 
 
-
-    if (index == 0){
-        last_pose_x_0 = pose_with_cov_msg.pose.pose.position.x;
-        last_pose_y_0 = pose_with_cov_msg.pose.pose.position.y;
-        last_pose_z_0 = pose_with_cov_msg.pose.pose.position.z;
-
-    }
-    if(index == 1){
-        last_pose_x_1 = pose_with_cov_msg.pose.pose.position.x;
-        last_pose_y_1 = pose_with_cov_msg.pose.pose.position.y;
-        last_pose_z_1 = pose_with_cov_msg.pose.pose.position.z;
-    }
-
-    positionDifference_x = last_pose_x_0 - last_pose_x_1;
-    positionDifference_y = last_pose_y_0 - last_pose_y_1;
-    positionDifference_z = last_pose_z_0 - last_pose_z_1;
-
-    std_msgs::msg::Float64 position_difference_x_msg;
-    position_difference_x_msg.data = positionDifference_x;
-    pub_pos_difference_x->publish(position_difference_x_msg);
-    std_msgs::msg::Float64 position_difference_y_msg;
-    position_difference_y_msg.data = positionDifference_y;
-    pub_pos_difference_y->publish(position_difference_y_msg);
-    std_msgs::msg::Float64 position_difference_z_msg;
-    position_difference_z_msg.data = positionDifference_z;
-    pub_pos_difference_z->publish(position_difference_z_msg);
-
-    positionDifference = sqrt(std::pow(positionDifference_x,2) + std::pow(positionDifference_y,2));
-//    RCLCPP_WARN(this->get_logger(), "position difference is %f", positionDifference);
-//
-    std_msgs::msg::Float64 position_difference_msg;
-    position_difference_msg.data = positionDifference;
-    pub_pos_difference->publish(position_difference_msg);
 
 }
 
